@@ -7,7 +7,8 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill
 import time
 
-
+result_checkbox = ""
+# massive = [[0] * row_T1 for i in range(row_T2)]
 
 def open_excel_file_T1():
     # Открываем файловый диалог для выбора файла Excel
@@ -34,8 +35,6 @@ def open_excel_file_T2():
         process_excel_file_T2(wb3)
 
 
-
-
 def process_excel_file_T1(wb2):
     # Получаем начальное время
     st = time.time()
@@ -47,7 +46,7 @@ def process_excel_file_T1(wb2):
     count_row = sheet_obj.max_row
     cell_obj = sheet_obj.cell(row=1, column=1)
 
-    color_arr = ["00000000", "1", "2", "FF8DB4E2", "0", "FFDA9694", "5",0,0,0,0,0]
+    color_arr = ["00000000", "1", "2", "FF8DB4E2", "0", "FFDA9694", "5", 0, 0, 0, 0, 0]
     print(color_arr[5])
 
     fooo = [[0] * count_column for i in range(count_row)]
@@ -60,7 +59,7 @@ def process_excel_file_T1(wb2):
             if colorr[0] == "V":
                 colorr = int(sheet_obj.cell(row=key + 1, column=key1 + 1).fill.fgColor.theme)
                 if colorr > 11:
-                      colorr = 0
+                    colorr = 0
                 colorr = color_arr[colorr]
             fooo_color[key][key1] = colorr
     print(fooo[0][3])
@@ -81,7 +80,7 @@ def process_excel_file_T1(wb2):
     for i in range(count_column):
         command_T1 += 'column' + str(i) + ' VARCHAR(400),'
     command_T1 += 'columnError VARCHAR(100)'
-    command_init_T1 = "CREATE TABLE T1 ("+ command_T1 + ")"
+    command_init_T1 = "CREATE TABLE T1 (" + command_T1 + ")"
     cur.execute(command_init_T1)
     insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * count_column) + ", %s)"
     for row in fooo:
@@ -103,15 +102,13 @@ def process_excel_file_T1(wb2):
             if isinstance(color, int):
                 color = hex(color)[2:].upper()
             if color != "00000000" and color != "0":
-                fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+                fill = PatternFill(start_color =color, end_color=color, fill_type="solid")
                 cell.fill = fill
 
     # Save the workbook to a file
     workbook.save('C:/1/2.xlsx')
 
     print("Excel file 'C:/1/2.xlsx' created successfully.")
-
-
 
 
 def process_excel_file_T2(wb3):
@@ -198,31 +195,49 @@ def process_excel_file_T2(wb3):
     print('Время исполнения:', elapsed_time, 'секунд')
 
 
+def checkbox_changed(checkbox_var, row, column, ii):
+    global result_checkbox
+    if checkbox_var.get():
+        print(f"Чекбокс в строке {row} и столбце {column} активирован")
+        if ii:
+            result_checkbox = str(int(ii) + (row % 10) + (column % 10))
+        else:
+            result_checkbox = str((row % 10) + (column % 10))
+    else:
+        print(f"Чекбокс в строке {row} и столбце {column} деактивирован")
+        result_checkbox = ""
 
+def action():
+    s = ""
+    p = ""
+    k = ""
+    for i in range(0, len(massive)):
+        for i2 in range(0, len(massive[i])):
+            if (i>0) and (i2>0):
+                if massive[i][i2] > 0:
+                    # print(massive[i][0], 'связь', massive[i][i2], 'С', massive[0][i2])
+                    s = s + massive[i][0] + ">" + massive[0][i2] + "\n" if massive[i][i2] & 1 else s
+                    p = p + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 1) & 1 else p
+                    k = k + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 2) & 1 else k
+    print("Связь:\n", s, "Приоритет:\n", p, "Ключ:\n", k)
+    # if s:
+        
 
-# def create_T3():
-#     # Подключение к базе данных
-#     conn = psycopg2.connect(
-#         dbname="vibory",
-#         user="elverona",
-#         password="qwerty",
-#         host="localhost",
-#         port="5432"
-#     )
-#
-#     # Создание курсора для выполнения операций с базой данных
-#     cur = conn.cursor()
-#
-#     # Создание таблицы T3
-#     cur.execute("DROP TABLE IF EXISTS T3")
-#
-#     cur.execute("CREATE TABLE T3 AS SELECT * FROM T1")
-#     cur.execute("INSERT INTO T3 SELECT * FROM T2")
-# 
-#     conn.commit()
-#     conn.close()
-#
-#     label.config(text="Таблица T3 создана успешно!")
+#     print(massive[i][i2], end=',')
+        # print()
+def checkbox_changed(checkbox_var, row, column):
+    global result_checkbox, b, a
+    b = row & 7
+    a = row >> 3
+    if checkbox_var.get():
+        # print(f"Чекбокс в строке {row} и столбце {column} активирован")
+        massive[a][column] = massive[a][column] | b
+    else:
+        # print(f"Чекбокс в строке {row} и столбце {column} деактивирован")
+        massive[a][column] = massive[a][column] & (~b)
+    # print("S,P,K\n", (massive[1][1] & 1), ((massive[1][1] >> 1) & 1), ((massive[1][1] >> 2) & 1))
+# Карта действий:
+# 1. вывести наименование столбцов и строк с номером строки или стобца
 
 def create_T3():
     # Подключение к базе данных
@@ -237,59 +252,102 @@ def create_T3():
     # Создание курсора для выполнения операций с базой данных
     cur = conn.cursor()
 
-    # Создание таблицы T3
-    cur.execute("DROP TABLE IF EXISTS T3")
+    # Получение первой строки из таблицы T1
+    cur.execute("SELECT * FROM T1 LIMIT 1")
+    row_T1 = cur.fetchone()
 
-    # Запрос на создание таблицы T3 с данными из T1 и замены из T2
-    query = """
-        CREATE TABLE T3 AS
-        SELECT 
-            T1.column1,
-            T1.column2,
-            T1.column3,
-            T1.column4,
-            T1.column5,
-            T1.column6,
-            T1.column7,
-            T1.column8,
-            T1.column9,
-            T1.column10,
-            T1.column11,
-            T1.column12,
-            T2.column1 AS new_column1,
-            T2.column6 AS new_column6
-        FROM T1
-        LEFT JOIN T2 ON T1.column1 = T2.column1 AND T1.column11 = T2.column6
-    """
-    cur.execute(query)
+    # Получение первой строки из таблицы T2
+    cur.execute("SELECT * FROM T2 LIMIT 1")
+    row_T2 = cur.fetchone()
 
-    # Обновление таблицы T3 с данными из T2
-    query = """
-        UPDATE T3
-        SET column1 = new_column1,
-            column6 = new_column6
-        WHERE new_column1 IS NOT NULL AND new_column6 IS NOT NULL
-    """
-    cur.execute(query)
+    global massive
+    massive = [[0] * (len(row_T1) + 1) for i in range((len(row_T2)) + 1)]
+    for p in enumerate(row_T1):
+        massive[0][p[0] + 1] = p[1]
+    for o in enumerate(row_T2):
+        massive[o[0] + 1][0] = o[1]
+    # print(massive, end="\n")
+    # for i in range(0, len(massive)):
+    #     for i2 in range(0, len(massive[i])):
+    #         print(massive[i][i2], end=',')
+    #     print()
 
-    # Удаление временных столбцов
-    query = """
-        ALTER TABLE T3
-        DROP COLUMN new_column1,
-        DROP COLUMN new_column6
-    """
-    cur.execute(query)
 
-    conn.commit()
+
+    # Создание нового окна для таблицы
+    table_window = tk.Toplevel(root)
+    table_window.title("Таблица T3")
+
+    # Создание таблицы в новом окне
+    table_frame = tk.Frame(table_window)
+    table_frame.pack(fill="both", expand=True)
+
+    # Создание стиля для полосы прокрутки
+    style = ttk.Style()
+    style.configure("Horizontal.TScrollbar", thumbcolor='gray50')
+    style.configure("Vertical.TScrollbar", thumbcolor='gray50')
+
+    # Создание горизонтальной полосы прокрутки
+    hscrollbar = ttk.Scrollbar(table_frame, orient=tk.HORIZONTAL, style="Horizontal.TScrollbar")
+    hscrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+
+    # Создание вертикальной полосы прокрутки
+    vscrollbar = ttk.Scrollbar(table_frame, orient=tk.VERTICAL, style="Vertical.TScrollbar")
+    vscrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+    # Создание канвы для таблицы
+    canvas = tk.Canvas(table_frame, width=400, height=200)
+    canvas.pack(side=tk.LEFT, fill="both", expand=True)
+
+    # Создание фрейма для содержимого таблицы
+    table_content_frame = tk.Frame(canvas)
+    canvas.create_window((0, 0), window=table_content_frame, anchor="nw")
+
+    # Создание заголовков таблицы
+    for i, value in enumerate(row_T1):
+        label = tk.Label(table_content_frame, text=str(value), highlightthickness=1, highlightbackground="gray")
+        label.grid(row=0, column=i + 1, padx=2, pady=2)
+
+    # Создание строк таблицы
+
+    for i, value in enumerate(row_T2):
+        label = tk.Label(table_content_frame, text=str(value), highlightthickness=1, highlightbackground="gray")
+        label.grid(row=i + 1, column=0, padx=2, pady=2)
+        for j in range(len(row_T1)):
+            checkbox_frame = tk.Frame(table_content_frame, highlightthickness=1, highlightbackground="gray")
+            checkbox_frame.grid(row=i + 1, column=j + 1, padx=2, pady=2)
+            checkbox_vars = [tk.IntVar() for _ in range(3)]
+            for k, checkbox_var in enumerate(checkbox_vars):
+                checkbox = tk.Checkbutton(checkbox_frame, variable=checkbox_var,
+                                          command=lambda var=checkbox_var, row=(((i+1)<<3) + (2**k)), column=(j + 1): checkbox_changed(
+                                              var, row, column))
+                checkbox.pack(side=tk.LEFT)
+
+    # Конфигурация полосы прокрутки
+    hscrollbar.config(command=canvas.xview)
+    vscrollbar.config(command=canvas.yview)
+    canvas.config(xscrollcommand=hscrollbar.set, yscrollcommand=vscrollbar.set)
+
+
+
+    # Создаем кнопку выполнения действия
+    button_execute = tk.Button(table_window, text="Выполнить действие", command=lambda: action())
+    button_execute.pack()
+
+    # Закрытие соединения с базой данных
     conn.close()
 
-    label.config(text="Таблица T3 создана успешно!")
+    # Вывод сообщения о создании таблицы
+    label = tk.Label(table_window, text="Таблица T3 создана успешно!")
+    label.pack()
+
 
 def create_button(frame, text, command):
     # Создаем кнопку
     button = tk.Button(frame, text=text, command=command)
     button.pack(side=tk.LEFT, padx=5, pady=5)
     return button
+
 
 # Создаем главное окно
 root = tk.Tk()
@@ -303,7 +361,7 @@ frame.pack(padx=10, pady=10)
 button_open_T1 = create_button(frame, "Открыть файл Excel для Т1", open_excel_file_T1)
 button_open_T2 = create_button(frame, "Открыть файл Excel для Т2", open_excel_file_T2)
 button_create_T3 = create_button(frame, "Создать T3", create_T3)
-# button_create_T4 = create_button(frame, "Создать T4", create_T4)
+# button_create_T 4 = create_button(frame, "Создать T4", create_T4)
 button_exit = create_button(frame, "Выход", root.destroy)
 
 # Создаем метку для вывода сообщений
@@ -312,6 +370,3 @@ label.pack(padx=10, pady=10)
 
 # Запускаем главное окно
 root.mainloop()
-
-
-
