@@ -220,7 +220,87 @@ def action():
                     p = p + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 1) & 1 else p
                     k = k + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 2) & 1 else k
     print("Связь:\n", s, "Приоритет:\n", p, "Ключ:\n", k)
-    # if s:
+    
+    # Если отмечены чекбоксы для связи (с), выполняем объединение и создаем Excel файл
+    if s:
+        # Подключаемся к базе данных
+        conn = psycopg2.connect(
+            dbname="vibory",
+            user="elverona",
+            password="qwerty",
+            host="localhost",
+            port="5432"
+        )
+        cur = conn.cursor()
+
+        # Создаем новую таблицу для результатов
+        cur.execute("DROP TABLE IF EXISTS result")
+        cur.execute("""
+            CREATE TABLE result AS 
+            SELECT DISTINCT *
+            FROM T1
+            FULL OUTER JOIN T2 ON T1.column0 = T2.column0
+            WHERE T1.column0 IS NOT NULL OR T2.column0 IS NOT NULL
+        """)
+
+        # Получаем результаты
+        cur.execute("SELECT * FROM result")
+        rows = cur.fetchall()
+
+        # Создаем новый Excel файл
+        workbook = openpyxl.Workbook()
+        sheet = workbook.active
+
+        # Записываем результаты в Excel файл
+        for row_index, row_data in enumerate(rows):
+            for column_index, value in enumerate(row_data):
+                sheet.cell(row=row_index + 1, column=column_index + 1, value=value)
+
+        # Сохраняем файл
+        workbook.save('C:/1/result.xlsx')
+        print("Excel файл 'C:/1/result.xlsx' создан успешно.")
+
+        # Закрываем соединение с базой данных
+        conn.commit()
+        conn.close()
+
+    # Если отмечены чекбоксы для ключа (к), выполняем поиск по полю ключа
+    if k:
+        # Подключаемся к базе данных
+        conn = psycopg2.connect(
+            dbname="vibory",
+            user="elverona",
+            password="qwerty",
+            host="localhost",
+            port="5432"
+        )
+        cur = conn.cursor()
+
+        # Предполагаем, что нужно искать в T1 и T2 по значениям ключа
+        for key in k.splitlines():
+            # Извлекаем соответствующее значение ключа из строки
+            key_value = key.split(' > ')[1]  # Настройте это в зависимости от фактической структуры данных
+
+            # Запрос для нахождения соответствующих данных
+            cur.execute("SELECT * FROM T1 WHERE column0 = %s UNION SELECT * FROM T2 WHERE column0 = %s", (key_value, key_value))
+            results = cur.fetchall()
+
+            # Создаем новый Excel файл для результатов по ключу
+            workbook = openpyxl.Workbook()
+            sheet = workbook.active
+
+            # Записываем результаты в Excel файл
+            for row_index, row_data in enumerate(results):
+                for column_index, value in enumerate(row_data):
+                    sheet.cell(row=row_index + 1, column=column_index + 1, value=value)
+
+            # Сохраняем файл
+            workbook.save(f'C:/1/result_key_{key_value}.xlsx')
+            print(f"Excel файл 'C:/1/result_key_{key_value}.xlsx' создан успешно.")
+
+        # Закрываем соединение с базой данных
+        conn.commit()
+        conn.close()
         
 
 #     print(massive[i][i2], end=',')
