@@ -220,87 +220,40 @@ def action():
                     p = p + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 1) & 1 else p
                     k = k + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 2) & 1 else k
     print("Связь:\n", s, "Приоритет:\n", p, "Ключ:\n", k)
-    
-    # Если отмечены чекбоксы для связи (с), выполняем объединение и создаем Excel файл
     if s:
-        # Подключаемся к базе данных
-        conn = psycopg2.connect(
-            dbname="vibory",
-            user="elverona",
-            password="qwerty",
-            host="localhost",
-            port="5432"
-        )
-        cur = conn.cursor()
-
-        # Создаем новую таблицу для результатов
-        cur.execute("DROP TABLE IF EXISTS result")
-        cur.execute("""
-            CREATE TABLE result AS 
-            SELECT DISTINCT *
-            FROM T1
-            FULL OUTER JOIN T2 ON T1.column0 = T2.column0
-            WHERE T1.column0 IS NOT NULL OR T2.column0 IS NOT NULL
-        """)
-
-        # Получаем результаты
-        cur.execute("SELECT * FROM result")
-        rows = cur.fetchall()
-
         # Создаем новый Excel файл
         workbook = openpyxl.Workbook()
         sheet = workbook.active
 
-        # Записываем результаты в Excel файл
-        for row_index, row_data in enumerate(rows):
-            for column_index, value in enumerate(row_data):
-                sheet.cell(row=row_index + 1, column=column_index + 1, value=value)
+        # Записываем заголовки
+        sheet.append(["Source", "Target", "Data from T1", "Data from T2"])
 
-        # Сохраняем файл
-        workbook.save('C:/1/result.xlsx')
-        print("Excel файл 'C:/1/result.xlsx' создан успешно.")
+        # Разбираем строки связи
+        for line in s.strip().split("\n"):
+            source, target = line.split(">")
+            # Находим данные из T1 и T2
+            t1_data = None
+            t2_data = None
 
-        # Закрываем соединение с базой данных
-        conn.commit()
-        conn.close()
+            # Получаем данные из T1
+            for row in massive[1:]:
+                if row[0] == source:
+                    t1_data = row
 
-    # Если отмечены чекбоксы для ключа (к), выполняем поиск по полю ключа
-    if k:
-        # Подключаемся к базе данных
-        conn = psycopg2.connect(
-            dbname="vibory",
-            user="elverona",
-            password="qwerty",
-            host="localhost",
-            port="5432"
-        )
-        cur = conn.cursor()
+            # Получаем данные из T2
+            for row in massive[1:]:
+                if row[0] == target:
+                    t2_data = row
 
-        # Предполагаем, что нужно искать в T1 и T2 по значениям ключа
-        for key in k.splitlines():
-            # Извлекаем соответствующее значение ключа из строки
-            key_value = key.split(' > ')[1]  # Настройте это в зависимости от фактической структуры данных
+            # Записываем данные в новый файл
+            if t1_data and t2_data:
+                # Записываем только нужные данные
+                sheet.append([source, target] + list(t1_data) + list(t2_data))
 
-            # Запрос для нахождения соответствующих данных
-            cur.execute("SELECT * FROM T1 WHERE column0 = %s UNION SELECT * FROM T2 WHERE column0 = %s", (key_value, key_value))
-            results = cur.fetchall()
-
-            # Создаем новый Excel файл для результатов по ключу
-            workbook = openpyxl.Workbook()
-            sheet = workbook.active
-
-            # Записываем результаты в Excel файл
-            for row_index, row_data in enumerate(results):
-                for column_index, value in enumerate(row_data):
-                    sheet.cell(row=row_index + 1, column=column_index + 1, value=value)
-
-            # Сохраняем файл
-            workbook.save(f'C:/1/result_key_{key_value}.xlsx')
-            print(f"Excel файл 'C:/1/result_key_{key_value}.xlsx' создан успешно.")
-
-        # Закрываем соединение с базой данных
-        conn.commit()
-        conn.close()
+        # Сохраняем новый файл
+        new_file_path = 'C:/1/result.xlsx'
+        workbook.save(new_file_path)
+        print(f"Результирующий Excel файл '{new_file_path}' создан успешно.")
         
 
 #     print(massive[i][i2], end=',')
