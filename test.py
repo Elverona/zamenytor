@@ -62,12 +62,12 @@ def process_excel_file_T1(wb2):
                     colorr = 0
                 colorr = color_arr[colorr]
             fooo_color[key][key1] = colorr
-    print(fooo[0][3])
+    print(fooo[0][2])
 
     # Подключение к базе данных
     conn = psycopg2.connect(
         dbname="vibory",
-        user="elverona",
+        user="postgres",
         password="qwerty",
         host="localhost",
         port="5432"
@@ -138,12 +138,12 @@ def process_excel_file_T2(wb3):
                     colorr = 0
                 colorr = color_arr[colorr]
             fooo_color[key][key1] = colorr
-    print(fooo[0][3])
+    print(fooo[0][2])
 
     # Подключение к базе данных
     conn = psycopg2.connect(
         dbname="vibory",
-        user="elverona",
+        user="postgres",
         password="qwerty",
         host="localhost",
         port="5432"
@@ -221,39 +221,53 @@ def action():
                     k = k + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 2) & 1 else k
     print("Связь:\n", s, "Приоритет:\n", p, "Ключ:\n", k)
     if s:
-        # Создаем новый Excel файл
+        # Подключение к базе данных
+        conn = psycopg2.connect(
+            dbname="vibory",
+            user="postgres",
+            password="qwerty",
+            host="localhost",
+            port="5432"
+        )
+        cur = conn.cursor()
+
+        # Получаем все данные из T2
+        cur.execute("SELECT * FROM T2")
+        rows_T2 = cur.fetchall()
+
+        # Добавление данных из T2 в T1
+        for i in range(1, len(massive)):  # Пропускаем первую строку, так как это заголовки
+            for j in range(1, len(massive[i])):  # Пропускаем первый столбец, так как это заголовки
+                if massive[i][j] & 1:  # Проверяем, активирован ли чекбокс
+                    # Вставляем все строки из T2 в T1
+                    for row_T2 in rows_T2:
+                        insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * len(row_T2)) + ")"
+                        cur.execute(insert_command_T1, row_T2)
+
+        conn.commit()
+
+        # Создание Excel файла с результатами
         workbook = openpyxl.Workbook()
         sheet = workbook.active
 
-        # Записываем заголовки
-        sheet.append(["Source", "Target", "Data from T1", "Data from T2"])
+        # Запись заголовков
+        for col_index, value in enumerate(massive[0]):
+            sheet.cell(row=1, column=col_index + 1, value=value)
 
-        # Разбираем строки связи
-        for line in s.strip().split("\n"):
-            source, target = line.split(">")
-            # Находим данные из T1 и T2
-            t1_data = None
-            t2_data = None
+        # Запись данных из T1
+        cur.execute("SELECT * FROM T1")
+        rows = cur.fetchall()
+        for row_index, row_data in enumerate(rows):
+            for col_index, value in enumerate(row_data):
+                sheet.cell(row=row_index + 2, column=col_index + 1, value=value)
 
-            # Получаем данные из T1
-            for row in massive[1:]:
-                if row[0] == source:
-                    t1_data = row
+        # Сохранение Excel файла
+        workbook.save('C:/1/result.xlsx')
+        print("Excel файл 'C:/1/result.xlsx' создан успешно.")
 
-            # Получаем данные из T2
-            for row in massive[1:]:
-                if row[0] == target:
-                    t2_data = row
+        conn.close()
 
-            # Записываем данные в новый файл
-            if t1_data and t2_data:
-                # Записываем только нужные данные
-                sheet.append([source, target] + list(t1_data) + list(t2_data))
 
-        # Сохраняем новый файл
-        new_file_path = 'C:/1/result.xlsx'
-        workbook.save(new_file_path)
-        print(f"Результирующий Excel файл '{new_file_path}' создан успешно.")
         
 
 #     print(massive[i][i2], end=',')
@@ -276,7 +290,7 @@ def create_T3():
     # Подключение к базе данных
     conn = psycopg2.connect(
         dbname="vibory",
-        user="elverona",
+        user="postgres",
         password="qwerty",
         host="localhost",
         port="5432"
