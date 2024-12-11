@@ -55,6 +55,9 @@ def process_excel_file_T1(wb2):
     fooo = [[0] * count_column for i in range(count_row)]
     fooo_color = [[0] * count_column for i in range(count_row)]
 
+    # Извлечение названий столбцов из первой строки
+    column_names = [str(sheet_obj.cell(row=1, column=i + 1).value).strip() for i in range(count_column)]
+
     for key, value2 in enumerate(fooo):
         for key1, value1 in enumerate(fooo[key]):
             fooo[key][key1] = str(sheet_obj.cell(row=key + 1, column=key1 + 1).value).strip()
@@ -79,15 +82,15 @@ def process_excel_file_T1(wb2):
     # Создание курсора для выполнения операций с базой данных
     cur = conn.cursor()
     cur.execute("DROP TABLE IF EXISTS T1")
-    command_T1 = ''
-    for i in range(count_column):
-        command_T1 += 'column' + str(i) + ' VARCHAR(400),'
-    command_T1 += 'columnError VARCHAR(100)'
-    command_init_T1 = "CREATE TABLE T1 (" + command_T1 + ")"
+
+    # Создание команды для создания таблицы с названиями столбцов из Excel
+    command_T1 = ', '.join([f'"{name}" VARCHAR(400)' for name in column_names])
+    command_init_T1 = f"CREATE TABLE T1 ({command_T1})"
     cur.execute(command_init_T1)
-    insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * count_column) + ", %s)"
+
+    insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * count_column) + ")"
     for row in fooo:
-        cur.execute(insert_command_T1, row + [None])
+        cur.execute(insert_command_T1, row)
 
     conn.commit()
     conn.close()
@@ -131,6 +134,9 @@ def process_excel_file_T2(wb3):
     fooo = [[0] * count_column for i in range(count_row)]
     fooo_color = [[0] * count_column for i in range(count_row)]
 
+    # Извлечение названий столбцов из первой строки
+    column_names = [str(sheet_obj.cell(row=1, column=i + 1).value).strip() for i in range(count_column)]
+
     for key, value2 in enumerate(fooo):
         for key1, value1 in enumerate(fooo[key]):
             fooo[key][key1] = str(sheet_obj.cell(row=key + 1, column=key1 + 1).value).strip()
@@ -154,17 +160,16 @@ def process_excel_file_T2(wb3):
 
     # Создание курсора для выполнения операций с базой данных
     cur = conn.cursor()
-
     cur.execute("DROP TABLE IF EXISTS T2")
-    command_T2 = ''
-    for i in range(count_column):
-        command_T2 += 'column' + str(i) + ' VARCHAR(300),'
-    command_T2 += 'columnError VARCHAR(100)'
-    command_init_T2 = "CREATE TABLE T2 (" + command_T2 + ")"
+
+    # Создание команды для создания таблицы с названиями столбцов из Excel
+    command_T2 = ', '.join([f'"{name}" VARCHAR(400)' for name in column_names])
+    command_init_T2 = f"CREATE TABLE T2 ({command_T2})"
     cur.execute(command_init_T2)
-    insert_command_T2 = "INSERT INTO T2 VALUES (" + ",".join(["%s"] * count_column) + ", %s)"
+
+    insert_command_T2 = "INSERT INTO T2 VALUES (" + ",".join(["%s"] * count_column) + ")"
     for row in fooo:
-        cur.execute(insert_command_T2, row + [None])
+        cur.execute(insert_command_T2, row)
 
     conn.commit()
     conn.close()
@@ -188,7 +193,7 @@ def process_excel_file_T2(wb3):
     # Save the workbook to a file
     workbook.save('C:/1/3.xlsx')
 
-    print("Excel file 'C:/1/3.xlsx' created successfully.")
+    print("Excel file 'C:/1/2.xlsx' created successfully.")
 
     # получаем время завершения
     et = time.time()
@@ -235,35 +240,35 @@ def action():
         )
         cur = conn.cursor()
 
+        # Получаем все данные из T1
+        cur.execute("SELECT * FROM T1")
+        rows_T1 = cur.fetchall()
+
         # Получаем все данные из T2
         cur.execute("SELECT * FROM T2")
         rows_T2 = cur.fetchall()
-
-        # Добавление данных из T2 в T1
-        for i in range(1, len(massive)):  # Пропускаем первую строку, так как это заголовки
-            for j in range(1, len(massive[i])):  # Пропускаем первый столбец, так как это заголовки
-                if massive[i][j] & 1:  # Проверяем, активирован ли чекбокс
-                    # Вставляем все строки из T2 в T1
-                    for row_T2 in rows_T2:
-                        insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * len(row_T2)) + ")"
-                        cur.execute(insert_command_T1, row_T2)
-
-        conn.commit()
 
         # Создание Excel файла с результатами
         workbook = openpyxl.Workbook()
         sheet = workbook.active
 
         # Запись заголовков
-        for col_index, value in enumerate(massive[0]):
+        for col_index, value in enumerate(rows_T1[0]):
             sheet.cell(row=1, column=col_index + 1, value=value)
 
         # Запись данных из T1
-        cur.execute("SELECT * FROM T1")
-        rows = cur.fetchall()
-        for row_index, row_data in enumerate(rows):
+        for row_index, row_data in enumerate(rows_T1):
             for col_index, value in enumerate(row_data):
                 sheet.cell(row=row_index + 2, column=col_index + 1, value=value)
+
+        # Добавление данных из T2 в зависимости от состояния чекбоксов
+        for i in range(1, len(massive)):  # Пропускаем первую строку, так как это заголовки
+            for j in range(1, len(massive[i])):  # Пропускаем первый столбец, так как это заголовки
+                if massive[i][j] & 1:  # Проверяем, активирован ли чекбокс "s"
+                    # Получаем данные из T2
+                    row_data_T2 = rows_T2[i - 1]  # Предполагаем, что данные находятся в строке i-1
+                    # Добавляем данные из T2 в новую строку
+                    sheet.append(row_data_T2)  # Добавляем всю строку из T2
 
         # Сохранение Excel файла
         workbook.save('C:/1/result.xlsx')
@@ -303,25 +308,49 @@ def create_T3():
     # Создание курсора для выполнения операций с базой данных
     cur = conn.cursor()
 
-    # Получение первой строки из таблицы T1
-    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 't1'")
-    row_T1 = cur.fetchall()
+    # Получение названий столбцов из таблицы T1
+    cur.execute("SELECT * FROM T1 LIMIT 0")  # Выполняем запрос, чтобы получить только названия столбцов
+    column_names_T1 = [desc[0] for desc in cur.description]
 
-    # Получение первой строки из таблицы T2
-    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 't2'")
-    row_T2 = cur.fetchall()
+    # Получение всех строк из таблицы T1
+    cur.execute("SELECT * FROM T1")
+    rows_T1 = cur.fetchall()
+
+    # Получение всех строк из таблицы T2
+    cur.execute("SELECT * FROM T2")
+    rows_T2 = cur.fetchall()
+
+    # Получение названий столбцов из T2
+    cur.execute("SELECT * FROM T2 LIMIT 0")  # Выполняем запрос, чтобы получить только названия столбцов
+    column_names_T2 = [desc[0] for desc in cur.description]
 
     global massive
-    massive = [[0] * (len(row_T1) + 1) for i in range((len(row_T2)) + 1)]
-    for p in enumerate(row_T1):
-        massive[0][p[0] + 1] = p[1]
-    for o in enumerate(row_T2):
-        massive[o[0] + 1][0] = o[1]
-    # print(massive, end="\n")
-    # for i in range(0, len(massive)):
-    #     for i2 in range(0, len(massive[i])):
-    #         print(massive[i][i2], end=',')
-    #     print()
+    massive = [[0] * (len(column_names_T1) + 2) for _ in range(len(rows_T1) + 2)]
+
+    # Заполнение заголовков
+    massive[0][0] = "T1"
+    massive[0][1] = "__SPK__"
+    massive[0][2] = "T2"
+
+    # Создание переменных для чекбоксов
+    checkbox_vars = []
+
+    for i, row in enumerate(rows_T1):
+        massive[i + 1][0] = row[0]  # Предполагаем, что первый столбец - это то, что нужно
+        # Создаем переменные для чекбоксов
+        checkbox_vars.append([tk.IntVar() for _ in range(3)])  # 3 чекбокса
+        massive[i + 1][1] = checkbox_vars[i]  # Сохраняем переменные в massive
+
+        # Заполнение выпадающего списка
+        massive[i + 1][2] = tk.StringVar()  # Для выпадающего списка
+
+    # Добавление строки "Добавить столбец"
+    massive[len(rows_T1) + 1][0] = "Добавить столбец"
+    massive[len(rows_T1) + 1][1] = tk.IntVar()  # Один чекбокс
+    massive[len(rows_T1) + 1][2] = tk.StringVar()  # Для выпадающего списка
+
+    # Добавляем переменные для чекбоксов в строке "Добавить столбец"
+    checkbox_vars.append([tk.IntVar()])  # Один чекбокс для "Добавить столбец"
 
     # Создание нового окна для таблицы
     table_window = tk.Toplevel(root)
@@ -352,26 +381,39 @@ def create_T3():
     table_content_frame = tk.Frame(canvas)
     canvas.create_window((0, 0), window=table_content_frame, anchor="nw")
 
-    # Создание заголовков таблицы
-    for i, value in enumerate(row_T1):
-        label = tk.Label(table_content_frame, text=str(value), highlightthickness=1, highlightbackground="gray")
-        label.grid(row=0, column=i + 1, padx=2, pady=2)
+    # Создание заголовков табли цы
+    for i in range(len(massive[0])):
+        label = tk.Label(table_content_frame, text=massive[0][i], highlightthickness=1, highlightbackground="gray")
+        label.grid(row=0, column=i, padx=2, pady=2)
 
     # Создание строк таблицы
+    for i in range(1, len(massive)):
+        # Название из T1
+        label = tk.Label(table_content_frame, text=massive[i][0], highlightthickness=1, highlightbackground="gray")
+        label.grid(row=i, column=0, padx=2, pady=2)
 
-    for i, value in enumerate(row_T2):
-        label = tk.Label(table_content_frame, text=str(value), highlightthickness=1, highlightbackground="gray")
-        label.grid(row=i + 1, column=0, padx=2, pady=2)
-        for j in range(len(row_T1)):
-            checkbox_frame = tk.Frame(table_content_frame, highlightthickness=1, highlightbackground="gray")
-            checkbox_frame.grid(row=i + 1, column=j + 1, padx=2, pady=2)
-            checkbox_vars = [tk.IntVar() for _ in range(3)]
-            for k, checkbox_var in enumerate(checkbox_vars):
-                checkbox = tk.Checkbutton(checkbox_frame, variable=checkbox_var,
-                                          command=lambda var=checkbox_var, row=(((i + 1) << 3) + (2 ** k)),
-                                                         column=(j + 1): checkbox_changed(
-                                              var, row, column))
-                checkbox.pack(side=tk.LEFT)
+        # Чекбоксы
+        checkbox_frame = tk.Frame(table_content_frame, highlightthickness=1, highlightbackground="gray")
+        checkbox_frame.grid(row=i, column=1, padx=2, pady=2)
+        for k in range(len(checkbox_vars[i - 1])):  # Изменено на len(checkbox_vars[i - 1])
+            checkbox = tk.Checkbutton(checkbox_frame, variable=checkbox_vars[i - 1][k])
+            checkbox.pack(side=tk.LEFT)
+
+        # Выпадающий список
+        combo = ttk.Combobox(table_content_frame, textvariable=massive[i][2], values=[row[0] for row in rows_T2])
+        combo.grid(row=i, column=2, padx=2, pady=2)
+
+    # Строка "Добавить столбец"
+    label = tk.Label(table_content_frame, text=massive[len(rows_T1) + 1][0], highlightthickness=1, highlightbackground="gray")
+    label.grid(row=len(massive) - 1, column=0, padx=2, pady=2)
+
+    checkbox_frame = tk.Frame(table_content_frame, highlightthickness=1, highlightbackground="gray")
+    checkbox_frame.grid(row=len(massive) - 1, column=1, padx=2, pady=2)
+    checkbox = tk.Checkbutton(checkbox_frame, variable=checkbox_vars[len(rows_T1)])  # Изменено на checkbox_vars[len(rows_T1)]
+    checkbox.pack(side=tk.LEFT)
+
+    combo = ttk.Combobox(table_content_frame, textvariable=massive[len(rows_T1) + 1][2], values=[row[0] for row in rows_T2])
+    combo.grid(row=len(massive) - 1, column=2, padx=2, pady=2)
 
     # Конфигурация полосы прокрутки
     hscrollbar.config(command=canvas.xview)
