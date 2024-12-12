@@ -246,23 +246,34 @@ def action():
         cur.execute(
             "CREATE TABLE t3_operations AS SELECT * FROM T1 WHERE FALSE")  # Создаем пустую таблицу с такой же структурой, как у T1
 
+        # Получаем данные из T1
+        cur.execute(
+            f"SELECT * FROM T1 WHERE \"{massive[i][0][0]}\" IS NOT NULL")  # Замените на нужный столбец
+        rows_T1 = cur.fetchall()
+
+        # Вставляем данные в t3_operations
+        for row in rows_T1:
+            insert_command = "INSERT INTO t3_operations VALUES (" + ",".join(["%s"] * len(row)) + ")"
+            cur.execute(insert_command, row)
+
         for i in range(0, len(massive)):
             for i2 in range(0, len(massive[i])):
                 if (i > 0) and (i2 > 0):
                     if massive[i][i2] & 1:  # Если чекбокс активирован для T1
-                        # Получаем данные из T1
-                        cur.execute(
-                            f"SELECT * FROM T1 WHERE \"{massive[i][0][0]}\" IS NOT NULL")  # Замените на нужный столбец
-                        rows_T1 = cur.fetchall()
-
-                        # Вставляем данные в t3_operations
-                        for row in rows_T1:
-                            insert_command = "INSERT INTO t3_operations VALUES (" + ",".join(["%s"] * len(row)) + ")"
-                            cur.execute(insert_command, row)
+                        print(massive[i])
+                        # # Получаем данные из T1
+                        # cur.execute(
+                        #     f"SELECT * FROM T1 WHERE \"{massive[i][0][0]}\" IS NOT NULL")  # Замените на нужный столбец
+                        # rows_T1 = cur.fetchall()
+                        #
+                        # # Вставляем данные в t3_operations
+                        # for row in rows_T1:
+                        #     insert_command = "INSERT INTO t3_operations VALUES (" + ",".join(["%s"] * len(row)) + ")"
+                        #     cur.execute(insert_command, row)
 
                         # Получаем данные из T2
                         cur.execute(
-                            f"SELECT \"{massive[0][i2][0]}\" FROM T2 WHERE TRUE")  # Замените на нужный столбец
+                            f"SELECT \"{massive[0][i][0]}\" FROM T2 WHERE TRUE")  # Замените на нужный столбец
                         rows_T2 = cur.fetchall()
 
                         # Вставляем данные в t3_operations
