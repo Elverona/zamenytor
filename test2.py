@@ -313,11 +313,11 @@ def create_T3():
     column_names_T1 = [desc[0] for desc in cur.description]
 
     # Получение всех строк из таблицы T1
-    cur.execute("SELECT * FROM T1")
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 't1'")
     rows_T1 = cur.fetchall()
 
     # Получение всех строк из таблицы T2
-    cur.execute("SELECT * FROM T2")
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 't2'")
     rows_T2 = cur.fetchall()
 
     # Получение названий столбцов из T2

@@ -55,6 +55,9 @@ def process_excel_file_T1(wb2):
     fooo = [[0] * count_column for i in range(count_row)]
     fooo_color = [[0] * count_column for i in range(count_row)]
 
+    # Извлечение названий столбцов из первой строки
+    column_names = [str(sheet_obj.cell(row=1, column=i + 1).value).strip() for i in range(count_column)]
+
     for key, value2 in enumerate(fooo):
         for key1, value1 in enumerate(fooo[key]):
             fooo[key][key1] = str(sheet_obj.cell(row=key + 1, column=key1 + 1).value).strip()
@@ -79,15 +82,15 @@ def process_excel_file_T1(wb2):
     # Создание курсора для выполнения операций с базой данных
     cur = conn.cursor()
     cur.execute("DROP TABLE IF EXISTS T1")
-    command_T1 = ''
-    for i in range(count_column):
-        command_T1 += 'column' + str(i) + ' VARCHAR(400),'
-    command_T1 += 'columnError VARCHAR(100)'
-    command_init_T1 = "CREATE TABLE T1 (" + command_T1 + ")"
+
+    # Создание команды для создания таблицы с названиями столбцов из Excel
+    command_T1 = ', '.join([f'"{name}" VARCHAR(400)' for name in column_names])
+    command_init_T1 = f"CREATE TABLE T1 ({command_T1})"
     cur.execute(command_init_T1)
-    insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * count_column) + ", %s)"
-    for row in fooo:
-        cur.execute(insert_command_T1, row + [None])
+
+    insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * count_column) + ")"
+    for row in fooo[1:]:
+        cur.execute(insert_command_T1, row)
 
     conn.commit()
     conn.close()
@@ -131,6 +134,9 @@ def process_excel_file_T2(wb3):
     fooo = [[0] * count_column for i in range(count_row)]
     fooo_color = [[0] * count_column for i in range(count_row)]
 
+    # Извлечение названий столбцов из первой строки
+    column_names = [str(sheet_obj.cell(row=1, column=i + 1).value).strip() for i in range(count_column)]
+
     for key, value2 in enumerate(fooo):
         for key1, value1 in enumerate(fooo[key]):
             fooo[key][key1] = str(sheet_obj.cell(row=key + 1, column=key1 + 1).value).strip()
@@ -154,17 +160,16 @@ def process_excel_file_T2(wb3):
 
     # Создание курсора для выполнения операций с базой данных
     cur = conn.cursor()
-
     cur.execute("DROP TABLE IF EXISTS T2")
-    command_T2 = ''
-    for i in range(count_column):
-        command_T2 += 'column' + str(i) + ' VARCHAR(300),'
-    command_T2 += 'columnError VARCHAR(100)'
-    command_init_T2 = "CREATE TABLE T2 (" + command_T2 + ")"
+
+    # Создание команды для создания таблицы с названиями столбцов из Excel
+    command_T2 = ', '.join([f'"{name}" VARCHAR(400)' for name in column_names])
+    command_init_T2 = f"CREATE TABLE T2 ({command_T2})"
     cur.execute(command_init_T2)
-    insert_command_T2 = "INSERT INTO T2 VALUES (" + ",".join(["%s"] * count_column) + ", %s)"
-    for row in fooo:
-        cur.execute(insert_command_T2, row + [None])
+
+    insert_command_T2 = "INSERT INTO T2 VALUES (" + ",".join(["%s"] * count_column) + ")"
+    for row in fooo[1:]:
+        cur.execute(insert_command_T2, row)
 
     conn.commit()
     conn.close()
@@ -219,11 +224,12 @@ def action():
         for i2 in range(0, len(massive[i])):
             if (i > 0) and (i2 > 0):
                 if massive[i][i2] > 0:
-                    # print(massive[i][0], 'связь', massive[i][i2], 'С', massive[0][i2])
-                    s = s + massive[i][0] + ">" + massive[0][i2] + "\n" if massive[i][i2] & 1 else s
-                    p = p + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 1) & 1 else p
-                    k = k + massive[i][0] + ">" + massive[0][i2] + "\n" if (massive[i][i2] >> 2) & 1 else k
+                    # Извлекаем строковые значения из кортежей
+                    s = s + str(massive[i][0][0]) + ">" + str(massive[0][i2][0]) + "\n" if massive[i][i2] & 1 else s
+                    p = p + str(massive[i][0][0]) + ">" + str(massive[0][i2][0]) + "\n" if (massive[i][i2] >> 1) & 1 else p
+                    k = k + str(massive[i][0][0]) + ">" + str(massive[0][i2][0]) + "\n" if (massive[i][i2] >> 2) & 1 else k
     print("Связь:\n", s, "Приоритет:\n", p, "Ключ:\n", k)
+
     if s:
         # Подключение к базе данных
         conn = psycopg2.connect(
@@ -235,18 +241,34 @@ def action():
         )
         cur = conn.cursor()
 
-        # Получаем все данные из T2
-        cur.execute("SELECT * FROM T2")
-        rows_T2 = cur.fetchall()
+        # Создание таблицы t3_operations
+        cur.execute("DROP TABLE IF EXISTS t3_operations")
+        cur.execute(
+            "CREATE TABLE t3_operations AS SELECT * FROM T1 WHERE FALSE")  # Создаем пустую таблицу с такой же структурой, как у T1
 
-        # Добавление данных из T2 в T1
-        for i in range(1, len(massive)):  # Пропускаем первую строку, так как это заголовки
-            for j in range(1, len(massive[i])):  # Пропускаем первый столбец, так как это заголовки
-                if massive[i][j] & 1:  # Проверяем, активирован ли чекбокс
-                    # Вставляем все строки из T2 в T1
-                    for row_T2 in rows_T2:
-                        insert_command_T1 = "INSERT INTO T1 VALUES (" + ",".join(["%s"] * len(row_T2)) + ")"
-                        cur.execute(insert_command_T1, row_T2)
+        for i in range(0, len(massive)):
+            for i2 in range(0, len(massive[i])):
+                if (i > 0) and (i2 > 0):
+                    if massive[i][i2] & 1:  # Если чекбокс активирован для T1
+                        # Получаем данные из T1
+                        cur.execute(
+                            f"SELECT * FROM T1 WHERE \"{massive[i][0][0]}\" IS NOT NULL")  # Замените на нужный столбец
+                        rows_T1 = cur.fetchall()
+
+                        # Вставляем данные в t3_operations
+                        for row in rows_T1:
+                            insert_command = "INSERT INTO t3_operations VALUES (" + ",".join(["%s"] * len(row)) + ")"
+                            cur.execute(insert_command, row)
+
+                        # Получаем данные из T2
+                        cur.execute(
+                            f"SELECT \"{massive[0][i2][0]}\" FROM T2 WHERE TRUE")  # Замените на нужный столбец
+                        rows_T2 = cur.fetchall()
+
+                        # Вставляем данные в t3_operations
+                        for row in rows_T2:
+                            insert_command = f"INSERT INTO t3_operations (\"{massive[0][i2][0]}\") VALUES (" + ",".join(["%s"] * len(row)) + ")"
+                            cur.execute(insert_command, row)
 
         conn.commit()
 
@@ -255,11 +277,13 @@ def action():
         sheet = workbook.active
 
         # Запись заголовков
-        for col_index, value in enumerate(massive[0]):
-            sheet.cell(row=1, column=col_index + 1, value=value)
+        cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name = 't3_operations'")
+        column_names = cur.fetchall()
+        for col_index, (column_name,) in enumerate(column_names):
+            sheet.cell(row=1, column=col_index + 1, value=column_name)
 
-        # Запись данных из T1
-        cur.execute("SELECT * FROM T1")
+        # Запись данных из t3_operations
+        cur.execute("SELECT * FROM t3_operations")
         rows = cur.fetchall()
         for row_index, row_data in enumerate(rows):
             for col_index, value in enumerate(row_data):
@@ -267,6 +291,7 @@ def action():
 
         # Сохранение Excel файла
         workbook.save('C:/1/result.xlsx')
+
         print("Excel файл 'C:/1/result.xlsx' создан успешно.")
 
         conn.close()
