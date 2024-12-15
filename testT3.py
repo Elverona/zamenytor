@@ -256,44 +256,40 @@ def action():
             insert_command = "INSERT INTO t3_operations VALUES (" + ",".join(["%s"] * len(row)) + ")"
             cur.execute(insert_command, row)
 
-        for i in range(0, len(massive)):
-            for i2 in range(0, len(massive[i])):
-                if (i > 0) and (i2 > 0):
-                    # Проверяем, сколько единиц в massive[i]
-                    count_of_ones = sum(1 for x in massive[i] if isinstance(x, int) and (x & 1))
-                    if count_of_ones >= 1:  # Замените 2 на нужное количество единиц
-                        print(massive[i])
 
-                        # Получаем данные из T2
-                        cur.execute(
-                            f"SELECT \"{massive[0][i][0]}\" FROM T2 WHERE TRUE")  # Замените на нужный столбец
-                        print(massive[0][i][0])
-                        rows_T2 = cur.fetchall()
-                        print('nj', rows_T2)
+        count_of_ones = sum(1 for x in massive[i] if isinstance(x, int) and (x & 1))
+        if count_of_ones == 1 & 1:  # Замените 2 на нужное количество единиц
+            print(massive[i])
 
-                        # Вставляем данные в t3_operations
-                        for row in rows_T2:
-                            insert_command = f"INSERT INTO t3_operations (\"{massive[0][i2][0]}\") VALUES (" + ",".join(["%s"] * len(row)) + ")"
-                            print(massive[0][i2][0])
-                            cur.execute(insert_command, row)
+            # Получаем данные из T2
+            cur.execute(
+                f"SELECT \"{massive[i][0][0]}\" FROM T2 WHERE TRUE")  # Замените на нужный столбец
+            print(massive[i][0][0])
+            rows_T2 = cur.fetchall()
+            print('nj', rows_T2)
 
-                    elif count_of_ones >= 2:
-                        print(massive[i])
+            # Вставляем данные в t3_operations
+            for row in rows_T2:
+                insert_command = f"INSERT INTO t3_operations (\"{massive[0][i2][0]}\") VALUES (" + ",".join(["%s"] * len(row)) + ")"
+                print(massive[0][i2][0])
+                cur.execute(insert_command, row)
 
-                        # Получаем данные из T2
-                        cur.execute(
-                            f"SELECT \"{str(massive[i][0][0]) + "," + str(massive[0][i2][0])}\" FROM T2 WHERE TRUE")  # Замените на нужный столбец
-                        print(massive[i][0][0])
-                        print(massive[0][i2][0])
-                        rows_T2 = cur.fetchall()
-                        print('nj', rows_T2)
+        elif count_of_ones == 2 & 1:
+            print(massive[i])
 
-                        # Вставляем данные в t3_operations
-                        for row in rows_T2:
-                            insert_command = f"INSERT INTO t3_operations (\"{massive[0][i2][0]}\") VALUES (" + ",".join(
-                                ["%s"] * len(row)) + ")"
-                            print(massive[0][i2][0])
-                            cur.execute(insert_command, row)
+            # Получаем данные из T2
+            cur.execute(
+                f"SELECT \"{str(massive[i][0][0]) + "," + str(massive[0][i2][0])}\" FROM T2 WHERE TRUE")  # Замените на нужный столбец
+            print(massive[i][0][0])
+            print(massive[0][i2][0])
+            rows_T2 = cur.fetchall()
+            print('nj', rows_T2)
+
+            # Вставляем данные в t3_operations
+            for row in rows_T2:
+                insert_command = f"INSERT INTO t3_operations (\"{massive[0][i2][0]}\") VALUES (" + ",".join(["%s"] * len(row)) + ")"
+                print(massive[0][i2][0])
+                cur.execute(insert_command, row)
 
         conn.commit()
 
